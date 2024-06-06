@@ -7,11 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = ">=3.09,<3.12"
-matlab = "^0.1"
 numpy = "^1.26.4"
-scipy = "^1.13.1"
-pymatreader = "^0.0.32"
-matplotlib = "^3.9.0"
 
 
 [build-system]
