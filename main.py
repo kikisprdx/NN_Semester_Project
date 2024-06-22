@@ -1,73 +1,86 @@
 import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from model import LSTMClassifier
 
-# The data is formatted very stupidly. 
+
+# The data is formatted very stupidly.
 # ae.test is a series of 12 input values followed by 12 output values.
-# What seperates them? A series of 1.0 to indicate the end of the recording. And a new line. 
+# What seperates them? A series of 1.0 to indicate the end of the recording. And a new line.
 
-# ae.train is the same!!! EXCEPT WITHOUT NEW LINES FOR SOME REASON 
+# ae.train is the same!!! EXCEPT WITHOUT NEW LINES FOR SOME REASON
 
 
 # Read these files
 def read_txt_file(filename):
-
     inputs = []
-    outputs = []
-    
     with open(filename, 'r') as file:
         lines = file.readlines()
         current_input = []
-        current_output = []
-        # Line by line we strip and split all values 
+        # Line by line we strip and split all values
         for line in lines:
             values = line.strip().split()
-            # If not the end of a record 
+            # If not the end of a record
             if values and values[0] != '1.0':
-                # We add the whole line (if invalid its going to be set to NaN) 
-                # First 12 set of values are input, the next 12 are output
-                # I only got this by looking through the original matlab file and inferencing this fact
-                # I could be wrong so maybe I'll ask the professor 
-                input_values = [float(val) if val else np.nan for val in values[:12]]
-                output_values = [float(val) if val else np.nan for val in values[12:]]
+                # here I removed the part where we are doing the first 12 inputs
+                # because I am not sure it was doing anything
+                input_values = [float(val) if val else np.nan for val in values]
                 current_input.append(input_values)
-                current_output.append(output_values)
             # We're at the end
             elif values and values[0] == '1.0':
                 inputs.append(current_input)
-                outputs.append(current_output)
                 current_input = []
-                current_output = []
-    return inputs, outputs
+    return inputs
+
+
+def create_training_labels():
+    training_labels = []
+    for x in range(9):
+        for y in range(30):
+            training_labels.append(x)
+
+    return training_labels
 
 
 # Read the files
-train_inputs, train_outputs = read_txt_file('ae.train')
-test_inputs, test_outputs = read_txt_file('ae.test')
+train_inputs = read_txt_file('ae.train')
+test_inputs = read_txt_file('ae.test')
+train_labels = create_training_labels()
 
-# READ: Different recording have different lengths 
-# Do we a) shorten the recordings to the shortest one, 
+# this conversion doesn't work bcs of the variable size of the input
+# so far the biggest issue in terms of using variable size input
+# which is not padded
+tensor_train = torch.tensor(train_inputs)
+tensor_test = torch.tensor(test_inputs)
+tensor_train_labels = torch.tensor(train_labels)
+
+input_size = tensor_train.shape[2]  # number of data features, should be 12
+hidden_size = 64  # HP, we'll adjust as we train
+# num_layers = 1  # also HP we can add to the architecture after we train initially
+output_size = 8  # number of classes that the lstm is trying to predict
+
+model = LSTMClassifier(input_size, hidden_size, output_size)
+
+loss_function = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+num_epochs = 10
+for epoch in range(num_epochs):
+    optimizer.zero_grad()
+    outputs = model(tensor_train)
+    loss = loss_function(outputs, tensor_train_labels)
+    loss.backward()
+    optimizer.step()
+    print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item()}')
+
+
+# READ: Different recording have different lengths
+# Do we a) shorten the recordings to the shortest one,
 # b) pad the recordings to the longest one, or
 # c) something else?
 # For now I'm doing b) but keep that in mind
-max_len_train_inputs = max(len(ts) for ts in train_inputs)
-max_len_train_outputs = max(len(ts) for ts in train_outputs)
-max_len_test_inputs = max(len(ts) for ts in test_inputs)
-max_len_test_outputs = max(len(ts) for ts in test_outputs)
 
-train_inputs = [np.pad(ts, ((0, max_len_train_inputs - len(ts)), (0, 0)), mode='constant', constant_values=np.nan) for ts in train_inputs]
-train_outputs = [np.pad(ts, ((0, max_len_train_outputs - len(ts)), (0, 0)), mode='constant', constant_values=np.nan) for ts in train_outputs]
-test_inputs = [np.pad(ts, ((0, max_len_test_inputs - len(ts)), (0, 0)), mode='constant', constant_values=np.nan) for ts in test_inputs]
-test_outputs = [np.pad(ts, ((0, max_len_test_outputs - len(ts)), (0, 0)), mode='constant', constant_values=np.nan) for ts in test_outputs]
-
-train_inputs = np.array(train_inputs)
-test_inputs = np.array(test_inputs)
-train_outputs = np.array(train_outputs)
-test_outputs = np.array(test_outputs)
-
-# BOOM 
-print(train_inputs.shape)
-print(test_inputs.shape)
-print(train_outputs.shape)
-print(test_outputs.shape)
 
 if __name__ == "__main__":
     pass

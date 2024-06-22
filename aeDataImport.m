@@ -24,6 +24,7 @@ trainInputs = cell(270,1);
 readindex = 0;
 for c = 1:270
     readindex = readindex + 1;
+
     l = 0;    
     while aeTrain(readindex, 1) ~= 1.0
         l = l+1;
