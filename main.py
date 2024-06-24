@@ -43,6 +43,30 @@ def read_txt_file(filename):
 train_inputs, train_outputs = read_txt_file('ae.train')
 test_inputs, test_outputs = read_txt_file('ae.test')
 
+train_outputs = []
+for i in range(269):
+    speaker_index = (i // 30) + 1  # Assuming 9 speakers, each with 30 time series
+    print(train_inputs[i])
+    l = len(train_inputs[i])
+    teacher = np.zeros((l, 9))
+    teacher[:, speaker_index - 1] = 1  # One-hot encoding for speaker index
+    train_outputs.append(teacher)
+
+# Create teacher signals for test data
+test_outputs = []
+speaker_index = 1
+block_counter = 0
+block_lengths = [31, 35, 88, 44, 29, 24, 40, 50, 29]  # Assuming the same block lengths as in MATLAB code
+for i in range(370):
+    block_counter += 1
+    if block_counter > block_lengths[speaker_index - 1]:
+        speaker_index += 1
+        block_counter = 1
+    l = len(test_inputs[i])
+    teacher = np.zeros((l, 9))
+    teacher[:, speaker_index - 1] = 1  # One-hot encoding for speaker index
+    test_outputs.append(teacher)
+
 # READ: Different recording have different lengths 
 # Do we a) shorten the recordings to the shortest one, 
 # b) pad the recordings to the longest one, or
@@ -69,5 +93,8 @@ print(test_inputs.shape)
 print(train_outputs.shape)
 print(test_outputs.shape)
 
+#print(train_inputs)
+# print(train_outputs)
+print(test_outputs)
 if __name__ == "__main__":
     pass
