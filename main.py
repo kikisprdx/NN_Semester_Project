@@ -2,7 +2,29 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.nn.utils.rnn import pad_sequence
 from model import LSTMClassifier
+
+
+def train_model():
+    input_size = padded_tensor_train.shape[2]  # number of data features, should be 12
+    hidden_size = 64  # HP, we'll adjust as we train
+    # num_layers = 1  # also HP we can add to the architecture after we train initially
+    output_size = 9  # number of classes that the lstm is trying to predict
+
+    model = LSTMClassifier(input_size, hidden_size, output_size)
+
+    loss_function = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    num_epochs = 5000
+    for epoch in range(num_epochs):
+        optimizer.zero_grad()
+        outputs = model(padded_tensor_train)
+        loss = loss_function(outputs, tensor_train_labels)
+        loss.backward()
+        optimizer.step()
+        print(f'Epoch [{epoch + 1}/{num_epochs}], Loss: {loss.item()}')
 
 
 # The data is formatted very stupidly.
@@ -18,7 +40,6 @@ def read_txt_file(filename):
     with open(filename, 'r') as file:
         lines = file.readlines()
         current_input = []
-        # Line by line we strip and split all values
         for line in lines:
             values = line.strip().split()
             # If not the end of a record
@@ -48,38 +69,16 @@ train_inputs = read_txt_file('ae.train')
 test_inputs = read_txt_file('ae.test')
 train_labels = create_training_labels()
 
-# this conversion doesn't work bcs of the variable size of the input
-# so far the biggest issue in terms of using variable size input
-# which is not padded
-tensor_train = torch.tensor(train_inputs)
-tensor_test = torch.tensor(test_inputs)
-tensor_train_labels = torch.tensor(train_labels)
-
-input_size = tensor_train.shape[2]  # number of data features, should be 12
-hidden_size = 64  # HP, we'll adjust as we train
-# num_layers = 1  # also HP we can add to the architecture after we train initially
-output_size = 8  # number of classes that the lstm is trying to predict
-
-model = LSTMClassifier(input_size, hidden_size, output_size)
-
-loss_function = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
-
-num_epochs = 10
-for epoch in range(num_epochs):
-    optimizer.zero_grad()
-    outputs = model(tensor_train)
-    loss = loss_function(outputs, tensor_train_labels)
-    loss.backward()
-    optimizer.step()
-    print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item()}')
+tensor_train = [torch.tensor(seq, dtype=torch.float32) for seq in train_inputs]
+tensor_test = [torch.tensor(seq, dtype=torch.float32) for seq in test_inputs]
+tensor_train_labels = torch.tensor(create_training_labels())
 
 
-# READ: Different recording have different lengths
-# Do we a) shorten the recordings to the shortest one,
-# b) pad the recordings to the longest one, or
-# c) something else?
-# For now I'm doing b) but keep that in mind
+padded_tensor_train = pad_sequence(tensor_train)
+padded_tensor_test = pad_sequence(tensor_test)
+
+print(padded_tensor_train.size())
+train_model()
 
 
 if __name__ == "__main__":
