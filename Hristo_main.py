@@ -25,11 +25,12 @@ def train_model():
     output_size = 9  # number of classes that the lstm is trying to predict
 
     model = LSTMClassifier(input_size, hidden_size, output_size)
+    model.train()
 
     loss_function = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     train_losses = []
-    num_epochs = 100
+    num_epochs = 1000
     for epoch in range(num_epochs):
         optimizer.zero_grad()
         outputs = model(padded_tensor_train)
@@ -48,12 +49,10 @@ def test_model(model):
     model.eval()
     with torch.no_grad():
         test_outputs = model(padded_tensor_test)
-        test_loss = nn.CrossEntropyLoss()(test_outputs, tensor_test_labels)
         test_predictions = torch.argmax(test_outputs, dim=1)
         accuracy = accuracy_score(tensor_test_labels.numpy(), test_predictions.numpy())
         f1 = f1_score(tensor_test_labels.numpy(), test_predictions.numpy(), average='weighted')
 
-    print(f'Test Loss: {test_loss.item()}')
     print(f'Test Accuracy: {accuracy}')
     print(f'Test F1 Score: {f1}')
 # The data is formatted very stupidly.
@@ -124,16 +123,19 @@ test_inputs = read_txt_file('ae.test')
 train_labels = create_training_labels()
 test_labels = create_testing_labels()
 
+# Convert to tensors
 tensor_train = [torch.tensor(seq, dtype=torch.float32) for seq in train_inputs]
 tensor_test = [torch.tensor(seq, dtype=torch.float32) for seq in test_inputs]
 tensor_train_labels = torch.tensor(train_labels, dtype=torch.long)
 tensor_test_labels = torch.tensor(test_labels, dtype=torch.long)
 
+# Pad
 padded_tensor_train = pad_sequence(tensor_train)
+print(padded_tensor_train.shape)
 padded_tensor_test = pad_sequence(tensor_test)
-
-model = train_model()
-test_model(model)
+print(padded_tensor_test.shape)
+# model = train_model()
+# test_model(model)
 
 if __name__ == "__main__":
     pass
