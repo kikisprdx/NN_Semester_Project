@@ -131,11 +131,10 @@ tensor_test_labels = torch.tensor(test_labels, dtype=torch.long)
 
 # Pad
 padded_tensor_train = pad_sequence(tensor_train)
-print(padded_tensor_train.shape)
 padded_tensor_test = pad_sequence(tensor_test)
-print(padded_tensor_test.shape)
-# model = train_model()
-# test_model(model)
+
+model = train_model()
+test_model(model)
 
 if __name__ == "__main__":
     pass
